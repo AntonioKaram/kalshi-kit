@@ -32,7 +32,7 @@ What was missing in Python: a **WebSocket client with reconnect**, **paper broke
 pip install git+https://github.com/AntonioKaram/kalshi-kit.git
 ```
 
-Requires Python 3.12+. PyPI publishing is planned but not active for v0.1.
+Requires Python 3.12+.
 
 ---
 
