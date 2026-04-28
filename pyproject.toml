@@ -1,0 +1,98 @@
+[project]
+name = "kalshi-kit"
+version = "0.1.0"
+description = "A Python toolkit for building, paper-testing, and analyzing trading strategies on Kalshi prediction markets."
+readme = "README.md"
+requires-python = ">=3.12"
+license = { file = "LICENSE" }
+authors = [{ name = "Antonio Karam" }]
+keywords = ["kalshi", "prediction-markets", "trading", "websocket", "paper-trading", "backtesting"]
+classifiers = [
+  "Development Status :: 4 - Beta",
+  "Intended Audience :: Developers",
+  "Intended Audience :: Financial and Insurance Industry",
+  "License :: OSI Approved :: MIT License",
+  "Operating System :: OS Independent",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Topic :: Office/Business :: Financial :: Investment",
+  "Topic :: Software Development :: Libraries :: Python Modules",
+]
+dependencies = [
+  "cryptography>=44.0.0",
+  "duckdb>=1.1.3",
+  "httpx>=0.28.0",
+  "numpy>=2.2.0",
+  "pandas>=2.2.3",
+  "pyarrow>=18.1.0",
+  "pydantic>=2.10.0",
+  "scipy>=1.14.1",
+  "tenacity>=9.0.0",
+  "typer>=0.15.1",
+  "websockets>=14.1",
+]
+
+[project.optional-dependencies]
+dev = [
+  "mypy>=1.13.0",
+  "pytest>=8.3.4",
+  "pytest-asyncio>=0.25.0",
+  "ruff>=0.8.4",
+  "respx>=0.21.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/AntonioKaram/kalshi-kit"
+Repository = "https://github.com/AntonioKaram/kalshi-kit"
+Issues = "https://github.com/AntonioKaram/kalshi-kit/issues"
+
+[project.scripts]
+kalshi-kit = "kalshi_kit.cli:app"
+
+[build-system]
+requires = ["setuptools>=75.6.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+package-dir = { "" = "src" }
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+kalshi_kit = ["storage/*.sql"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
+asyncio_mode = "auto"
+
+[tool.ruff]
+line-length = 120
+target-version = "py312"
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP", "N", "ASYNC", "RUF"]
+ignore = ["B008"]  # Typer/FastAPI use call-in-default idiomatically
+
+[tool.mypy]
+python_version = "3.12"
+warn_unused_configs = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+strict_optional = true
+disallow_untyped_defs = true
+exclude = ["tests/data", "examples"]
+
+[[tool.mypy.overrides]]
+module = ["pandas", "pandas.*", "scipy", "scipy.*", "duckdb"]
+ignore_missing_imports = true
+
+# The live broker parses untyped Kalshi REST responses and feeds the values
+# into typed Pydantic constructors. mypy can't track the runtime coercion;
+# the OrderRecord/FillRecord constructors validate at runtime.
+[[tool.mypy.overrides]]
+module = ["kalshi_kit.broker.live"]
+disable_error_code = ["arg-type"]
