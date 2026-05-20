@@ -6,15 +6,15 @@
 
 **A Python toolkit for building, paper-testing, and analyzing trading strategies on Kalshi prediction markets.**
 
-`kalshi-kit` is a batteries-included framework with REST + WebSocket connectivity, a paper broker that simulates fills from live order-book data, DuckDB session capture, and a microstructure analysis toolkit (lag correlation + fill-level diagnostics). It exists because building any of these from scratch — and getting them right — takes longer than building the strategy itself.
+`kalshi-kit` is a framework with REST + WebSocket connectivity, a paper broker that simulates fills from live order-book data, DuckDB session capture, and a microstructure analysis toolkit (lag correlation + fill-level diagnostics). It exists because building any of these from scratch takes longer than building a strategy.
 
-> **Status**: this is a research toolkit, not financial advice. The author built it while testing strategies on KXBTC15M; none produced durable edge. The infrastructure is what's published. See [What I learned](#what-i-learned).
+> **Status**: this is a research toolkit, not financial advice.
 
 ---
 
 ## Why this exists
 
-The public Kalshi Python ecosystem is thin. Existing options:
+The public Kalshi Python ecosystem is not widely populated. Existing options:
 
 | Tool | Scope |
 |---|---|
@@ -22,7 +22,7 @@ The public Kalshi Python ecosystem is thin. Existing options:
 | [`kalshi-rust`](https://github.com/dpeachpeach/kalshi-rust) | Rust-only |
 | [`OctagonAI/kalshi-trading-bot-cli`](https://github.com/OctagonAI/kalshi-trading-bot-cli) | LLM-driven CLI for fundamentals research |
 
-What was missing in Python: a **WebSocket client with reconnect**, **paper broker with realistic fill simulation**, **replay framework**, and **microstructure analysis** in one package, sharing data models. That's what this is.
+What's missing in Python is a **WebSocket client with reconnect**, **paper broker with realistic fill simulation**, **replay framework**, and **microstructure analysis** in one package, sharing data models.
 
 ---
 
@@ -184,22 +184,6 @@ Trips on stale data, repeated API errors, or daily-loss breach. Auto-recovers fr
 ```
 
 Read in detail: [`docs/architecture.md`](docs/architecture.md).
-
----
-
-## What I learned
-
-I built `kalshi-kit` while testing strategies on KXBTC15M (15-minute Bitcoin binaries). Five strategy variants and ~2 weeks of evidence later, none produced durable edge. The infrastructure was the durable output. A few practical findings worth knowing if you're building on Kalshi:
-
-- **Auth is RSA-PSS, not JWT.** Sign each request with `timestamp + method + path`. No session tokens, no refresh logic to maintain.
-- **`429` responses don't include `Retry-After`.** You must implement your own exponential backoff. A single token bucket across reads and writes is wrong — Kalshi rate-limits them separately.
-- **Batch cancel costs N tokens, not 1.** Plan accordingly when canceling a stack.
-- **The WebSocket is read-only.** All order operations go through REST (or FIX, if you have access).
-- **Fees: `⌈7 · p · (1 − p)⌉` cents per fill.** Peak 2¢ per leg at `p = 0.5` (since `7 · 0.25 = 1.75` rounds up), dropping toward zero at the extremes. A round-trip near 50¢ costs 4¢ — meaningful relative to the 1–2¢ edges available on near-strike binaries.
-- **KXBTC15M settles on a 60-second TWAP** of CFTC-published RTI, not a point-in-time print. Single-venue lead-lag signals decay against this.
-- **Adverse selection on passive entries: ~94%** in the data this toolkit captured. Maker rebates do not exist on Kalshi; passive fills carry no compensating premium.
-
-A longer write-up is in progress; link will appear here when published.
 
 ---
 
