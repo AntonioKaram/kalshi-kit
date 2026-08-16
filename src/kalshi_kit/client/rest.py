@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 import os
+from collections.abc import Mapping, Sequence
 from pathlib import Path
 from typing import Any
 
@@ -14,6 +15,9 @@ logger = logging.getLogger(__name__)
 
 DEFAULT_BASE_URL = "https://api.elections.kalshi.com/trade-api/v2"
 DEFAULT_DEMO_BASE_URL = "https://demo-api.kalshi.co/trade-api/v2"
+MAX_ORDERBOOK_TICKERS_PER_REQUEST = 100
+QueryParamValue = str | int | float | bool | None
+QueryParams = Mapping[str, QueryParamValue | Sequence[QueryParamValue]] | list[tuple[str, QueryParamValue]]
 
 
 class KalshiRestClient:
@@ -67,12 +71,17 @@ class KalshiRestClient:
         return await self._request("GET", f"/markets/{ticker}/orderbook", params=params, authenticated=False)
 
     async def get_multiple_orderbooks(self, tickers: list[str]) -> dict[str, Any]:
-        return await self._request(
-            "GET",
-            "/markets/orderbooks",
-            params={"tickers": ",".join(tickers)},
-            authenticated=False,
-        )
+        orderbooks: list[dict[str, Any]] = []
+        for start in range(0, len(tickers), MAX_ORDERBOOK_TICKERS_PER_REQUEST):
+            chunk = tickers[start : start + MAX_ORDERBOOK_TICKERS_PER_REQUEST]
+            response = await self._request(
+                "GET",
+                "/markets/orderbooks",
+                params=[("tickers", ticker) for ticker in chunk],
+                authenticated=False,
+            )
+            orderbooks.extend(response.get("orderbooks", []))
+        return {"orderbooks": orderbooks}
 
     async def get_trades(self, **params: Any) -> dict[str, Any]:
         return await self._request("GET", "/markets/trades", params=params, authenticated=False)
@@ -125,7 +134,7 @@ class KalshiRestClient:
         method: str,
         path: str,
         *,
-        params: dict[str, Any] | None = None,
+        params: QueryParams | None = None,
         json_body: dict[str, Any] | None = None,
         authenticated: bool,
     ) -> dict[str, Any]:
